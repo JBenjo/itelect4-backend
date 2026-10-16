@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ensureSrvDnsWorks } from "./dns";
 
 export async function connectDB() {
   const uri = process.env.MONGODB_URI;
@@ -15,6 +16,7 @@ export async function connectDB() {
   // not fail -- it sits there for 31 seconds looking like a hung
   // terminal, and then errors. Five seconds is long enough for a real
   // Atlas connection and short enough to tell you something is wrong.
+  await ensureSrvDnsWorks();
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
   console.log("MongoDB connected:", mongoose.connection.name);
 }
