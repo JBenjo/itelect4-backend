@@ -9,7 +9,7 @@ function srvNameOf(uri: string): string | null {
 
 function resolvable(srvName: string, servers: string[]): Promise<boolean> {
   return new Promise((resolve) => {
-    const resolver = new dns.Resolver({ timeout: 3000, tries: 1 });
+    const resolver = new dns.Resolver({ timeout: 800, tries: 1 });
     try {
       resolver.setServers(servers);
       resolver.resolveSrv(srvName, (err) => resolve(!err));
@@ -20,6 +20,11 @@ function resolvable(srvName: string, servers: string[]): Promise<boolean> {
 }
 
 export async function ensureSrvDnsWorks(): Promise<void> {
+  // On Vercel the runtime resolves Atlas SRV records on its own, so this
+  // probe has nothing to fix. Worse, its resolver timeout would sit on
+  // the critical path of every cold start. Skip it there.
+  if (process.env.VERCEL) return;
+
   const srvName = srvNameOf(process.env.MONGODB_URI ?? "");
   if (!srvName) return;
 
@@ -28,10 +33,13 @@ export async function ensureSrvDnsWorks(): Promise<void> {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  // Public DNS first: it is the resolver that actually answers for Atlas
+  // everywhere, so the working answer is reached without paying a timeout
+  // on a local resolver that may never reply.
   const candidates = [
     ...(envServers.length ? [envServers] : []),
-    dns.getServers(),
     PUBLIC_DNS,
+    dns.getServers(),
   ];
 
   for (const servers of candidates) {
