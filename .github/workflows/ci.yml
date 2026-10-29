@@ -1,0 +1,36 @@
+# ===== SESSION 12: a NEW file =========================================
+# GitHub reads every .yml file in .github/workflows/ and runs it when
+# its "on" event happens. This one runs on every push, to any branch.
+name: CI
+
+on: push
+
+jobs:
+  test:
+    # A fresh Linux machine from GitHub, empty except for the tools
+    # GitHub installs on it. Nothing from your laptop is on it.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Copies this repo, at the commit that was pushed, onto the machine.
+      - uses: actions/checkout@v7
+
+      # Installs Node 24 and keeps npm's download cache between runs.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # Installs exactly what package-lock.json lists. node_modules is
+      # in .gitignore, so it is not in the repo for checkout to copy.
+      - run: npm ci
+
+      # The same check npm run build does, without writing dist/.
+      - run: npm run typecheck
+
+      # The Supertest file. requireAuth and the test both read
+      # JWT_SECRET, and .env is not in the repo, so the value comes
+      # from Settings > Secrets and variables > Actions instead.
+      - run: npm test
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
