@@ -16,7 +16,7 @@ import {
 let client: GoogleGenAI | null = null;
 
 function getClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error(
       "GEMINI_API_KEY is missing. Add it to .env, and to Vercel.",
@@ -28,9 +28,9 @@ function getClient(): GoogleGenAI {
   return client;
 }
 
-// The two examples become two finished exchanges -- a user turn, then
-// the model's reply -- and the real description is the last turn.
-// To the model it looks like a conversation it has already had twice.
+// The examples become finished exchanges -- user turn, then
+// model reply -- and the real description is the last turn.
+// To the model it looks like a conversation it has already had.
 function buildContents(description: string): Content[] {
   const shots: Content[] = EXAMPLES.flatMap((example) => [
     { role: "user", parts: [{ text: wrap(example.description) }] },
